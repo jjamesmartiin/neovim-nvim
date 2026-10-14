@@ -88,3 +88,85 @@ vim.api.nvim_create_autocmd("FileType", {
     end, { buffer = true, silent = true, desc = "Follow markdown link" })
   end,
 })
+
+-- ── Restored from the pre-refactor config (c370a06c^) ────────────────────────
+
+-- Limelight: dim everything but the current paragraph
+vim.g.limelight_conceal_ctermfg = 240
+
+vim.cmd([[
+  function! ToggleLimelight()
+    if exists("g:limelight_active") && g:limelight_active
+      Limelight!
+      let g:limelight_active = 0
+    else
+      Limelight
+      let g:limelight_active = 1
+    endif
+  endfunction
+  nnoremap <Leader>L :call ToggleLimelight()<CR>
+
+  " Convert the buffer with pandoc, output into a new scratch tab
+  function! ConvertWithPandoc()
+    let l:fileext = expand('%:e')
+    let l:filetype = &filetype
+
+    let l:from_fmt = ""
+    let l:to_fmt = ""
+
+    if l:fileext ==# 'md' || l:filetype ==# 'markdown'
+      let l:from_fmt = 'markdown'
+      let l:to_fmt = 'mediawiki'
+    elseif l:fileext ==# 'wiki' || l:filetype ==# 'mediawiki'
+      let l:from_fmt = 'mediawiki'
+      let l:to_fmt = 'markdown'
+    else
+      let l:from_fmt = 'mediawiki'
+      let l:to_fmt = 'markdown'
+    endif
+
+    let l:content = join(getline(1, '$'), "\n")
+    let l:command = 'pandoc -f ' . l:from_fmt . ' -t ' . l:to_fmt
+    let l:output = system(l:command, l:content)
+
+    if v:shell_error != 0
+      echo "Pandoc conversion failed!"
+      return
+    endif
+
+    execute 'tabnew'
+    setlocal buftype=nofile
+    setlocal bufhidden=hide
+    setlocal noswapfile
+
+    if l:to_fmt ==# 'markdown'
+      setlocal filetype=markdown
+    elseif l:to_fmt ==# 'mediawiki'
+      setlocal filetype=mediawiki
+    endif
+
+    call setline(1, split(l:output, "\n"))
+    echo "Converted content (" . l:from_fmt . " -> " . l:to_fmt . ") loaded in a new tab"
+  endfunction
+  command! PandocConvert call ConvertWithPandoc()
+  nnoremap <Leader>M :call ConvertWithPandoc()<CR>
+
+  " Tick / untick todo boxes, on the current line or a range
+  nnoremap <Leader>B /\[ \]<CR>
+  nnoremap <Leader>X :silent! execute "/- \\[ \\]"<CR>
+  function! ToggleTodoBox(...) range
+    for lnum in range(a:firstline, a:lastline)
+      let line = getline(lnum)
+      if line =~ '- \[ \]'
+        let updated = substitute(line, '- \[ \]', '- [x]', '')
+      elseif line =~ '- \[x\]'
+        let updated = substitute(line, '- \[x\]', '- [ ]', '')
+      else
+        let updated = line
+      endif
+      call setline(lnum, updated)
+    endfor
+  endfunction
+  nnoremap <silent> <leader>x :call ToggleTodoBox()<CR>
+  vnoremap <silent> <leader>x :call ToggleTodoBox()<CR>
+]])

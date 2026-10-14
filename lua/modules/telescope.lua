@@ -18,6 +18,13 @@ custom_actions.insert_path = function(prompt_bufnr)
   vim.api.nvim_win_set_cursor(0, { row, col + #selection.value })
 end
 
+custom_actions.insert_markdown_link = function(prompt_bufnr)
+  local selection = action_state.get_selected_entry()
+  actions.close(prompt_bufnr)
+  local path = selection.value
+  vim.api.nvim_put({ string.format("[%s](%s)", path, path) }, "", false, true)
+end
+
 telescope.setup({
   defaults = {
     sorting_strategy = "ascending",
@@ -29,6 +36,12 @@ telescope.setup({
         ["<C-j>"] = actions.move_selection_next,
         ["<C-k>"] = actions.move_selection_previous,
         ["<C-i>"] = custom_actions.insert_path,
+        ["<M-i>"] = custom_actions.insert_path,
+        ["<M-I>"] = custom_actions.insert_markdown_link,
+      },
+      n = {
+        ["<M-i>"] = custom_actions.insert_path,
+        ["<M-I>"] = custom_actions.insert_markdown_link,
       },
     },
   },
@@ -41,3 +54,5 @@ vim.keymap.set("n", "<Leader>F", "<CMD>Telescope live_grep hidden=true no_ignore
 vim.keymap.set("n", "<Leader>o", "<CMD>Telescope oldfiles<CR>", { desc = "Recent Files" })
 vim.keymap.set({ "n", "i" }, "<M-i>", "<Esc><CMD>Telescope find_files hidden=true<CR>", { desc = "Find Files (Hidden)" })
 vim.keymap.set({ "n", "i" }, "<M-I>", "<Esc><CMD>Telescope find_files hidden=true<CR>", { desc = "Find Files (Hidden)" })
+vim.keymap.set("n", "<Leader>T", "<CMD>Telescope buffers<CR>", { desc = "Buffers" })
+vim.keymap.set("n", "<Leader>W", 'viw"0y<Space><CMD>Telescope grep_string<CR><Esc>', { desc = "Grep word under cursor" })
